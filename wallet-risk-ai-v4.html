@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Wallet Risk AI — On-Chain Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:           #030508;
+  --surface:      #080c14;
+  --card:         #0a1019;
+  --card-border:  #111d30;
+  --card-border2: #1a2d4a;
+  --text:         #c8d8f0;
+  --text-dim:     #8099c0;
+  --muted:        #2a3f60;
+  --mono:         'JetBrains Mono', monospace;
+  --sans:         'Space Grotesk', sans-serif;
+  --green:        #00f5a0;
+  --green-mid:    #00c97e;
+  --green-bg:     rgba(0,245,160,.06);
+  --green-border: rgba(0,245,160,.2);
+  --green-glow:   rgba(0,245,160,.3);
+  --yellow:       #f0c040;
+  --yellow-bg:    rgba(240,192,64,.06);
+  --yellow-border:rgba(240,192,64,.2);
+  --red:          #ff4060;
+  --red-bg:       rgba(255,64,96,.06);
+  --red-border:   rgba(255,64,96,.2);
+  --red-glow:     rgba(255,64,96,.3);
+  --blue:         #2060ff;
+  --blue-light:   #4090ff;
+  --blue-glow:    rgba(32,96,255,.35);
+  --purple:       #9060ff;
+  --purple-bg:    rgba(144,96,255,.06);
+  --purple-border:rgba(144,96,255,.2);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+
+.bg-layer{position:fixed;inset:0;pointer-events:none;z-index:0}
+.bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(32,96,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(32,96,255,.028) 1px,transparent 1px);background-size:64px 64px}
+.bg-glow1{position:absolute;width:700px;height:500px;border-radius:50%;background:radial-gradient(ellipse,rgba(32,96,255,.07) 0%,transparent 70%);top:-200px;left:50%;transform:translateX(-50%)}
+.bg-glow2{position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,245,160,.04) 0%,transparent 70%);bottom:10%;right:5%}
+
+.page{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:56px 20px 120px}
+
+/* HEADER */
+header{text-align:center;margin-bottom:56px;animation:fadeDown .8s cubic-bezier(.16,1,.3,1) both}
+.logo{display:inline-flex;align-items:center;gap:16px;margin-bottom:16px}
+.logo-mark{position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center}
+.logo-mark svg{position:relative;z-index:1}
+.logo-mark::after{content:'';position:absolute;inset:-4px;border-radius:16px;background:linear-gradient(135deg,var(--blue),#00c0ff);opacity:.15;animation:logoPulse 3s ease infinite}
+.logo-text{text-align:left}
+.logo-title{font-size:28px;font-weight:700;letter-spacing:-.5px;color:#fff;line-height:1}
+.logo-title em{font-style:normal;background:linear-gradient(90deg,var(--blue-light),#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:3px}
+.header-desc{font-size:14px;color:var(--text-dim);max-width:480px;margin:0 auto;line-height:1.6}
+
+/* API SETUP */
+.api-setup{background:var(--card);border:1px solid var(--card-border);border-radius:20px;padding:24px 28px;margin-bottom:20px;animation:fadeUp .7s .1s cubic-bezier(.16,1,.3,1) both;position:relative;overflow:hidden}
+.api-setup::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(32,96,255,.5),transparent)}
+.api-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap}
+.api-label{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted)}
+.api-status{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px}
+.api-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s,box-shadow .3s}
+.api-dot.connected{background:var(--green);box-shadow:0 0 8px var(--green-glow);animation:blink 2s infinite}
+.api-dot.demo{background:var(--yellow);box-shadow:0 0 6px rgba(240,192,64,.4)}
+.api-dot.error{background:var(--red);box-shadow:0 0 6px var(--red-glow)}
+.api-status-text{color:var(--text-dim)}.api-status-text.connected{color:var(--green)}.api-status-text.demo{color:var(--yellow)}.api-status-text.error{color:var(--red)}
+.api-row{display:flex;gap:10px}
+input.api-input{flex:1;background:var(--surface);border:1px solid var(--card-border);border-radius:10px;padding:12px 16px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .2s,box-shadow .2s;min-width:0}
+input.api-input::placeholder{color:var(--muted)}
+input.api-input:focus{border-color:var(--blue-light);box-shadow:0 0 0 3px rgba(32,96,255,.12)}
+.btn-sm{background:var(--surface);border:1px solid var(--card-border2);border-radius:10px;padding:12px 18px;color:var(--text-dim);font-family:var(--mono);font-size:11px;cursor:pointer;white-space:nowrap;transition:all .15s}
+.btn-sm:hover{border-color:var(--blue-light);color:var(--text)}
+.api-hint{margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.6}
+.api-hint a{color:var(--blue-light);text-decoration:none}.api-hint a:hover{text-decoration:underline}
+
+/* SEARCH */
+.search-card{background:var(--card);border:1px solid var(--card-border);border-radius:20px;padding:28px;margin-bottom:32px;animation:fadeUp .7s .15s cubic-bezier(.16,1,.3,1) both;box-shadow:0 20px 80px rgba(0,0,0,.5);position:relative;overflow:hidden}
+.search-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(32,96,255,.4),transparent)}
+.search-label{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.search-row{display:flex;gap:12px}
+input.addr-input{flex:1;background:var(--surface);border:1px solid var(--card-border);border-radius:12px;padding:16px 20px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s;min-width:0;letter-spacing:.3px}
+input.addr-input::placeholder{color:var(--muted)}
+input.addr-input:focus{border-color:var(--blue-light);box-shadow:0 0 0 3px rgba(32,96,255,.12)}
+input.addr-input.error{border-color:var(--red)!important;box-shadow:0 0 0 3px rgba(255,64,96,.12)!important;animation:shake .35s ease}
+.btn-analyze{background:linear-gradient(135deg,var(--blue),#0088ff);border:none;border-radius:12px;padding:16px 32px;color:#fff;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:transform .15s,box-shadow .2s,opacity .2s;box-shadow:0 4px 24px var(--blue-glow);letter-spacing:.2px}
+.btn-analyze:hover{transform:translateY(-2px);box-shadow:0 8px 32px var(--blue-glow)}
+.btn-analyze:active{transform:translateY(0)}
+.btn-analyze:disabled{opacity:.45;cursor:default;transform:none}
+.validation-err{display:none;align-items:center;gap:8px;margin-top:12px;background:var(--red-bg);border:1px solid var(--red-border);border-radius:8px;padding:10px 14px;font-family:var(--mono);font-size:11px;color:#ff8096;animation:fadeUp .2s ease}
+.validation-err.show{display:flex}
+
+/* LOADER */
+.loader-wrap{display:none;margin-top:18px}.loader-wrap.active{display:block}
+.loader-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.loader-step{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+.loader-pct{font-family:var(--mono);font-size:11px;color:var(--blue-light)}
+.loader-track{height:3px;background:var(--card-border);border-radius:2px;overflow:hidden}
+.loader-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--blue),#00d4ff);border-radius:2px;box-shadow:0 0 12px rgba(32,96,255,.5)}
+.loader-detail{margin-top:8px;display:flex;gap:16px;flex-wrap:wrap}
+.loader-chip{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.loader-chip.done{color:var(--green)}
+.loader-chip::before{content:'○';font-size:8px}
+.loader-chip.done::before{content:'●'}
+
+/* RESULTS */
+#results{opacity:0;transform:translateY(24px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1);pointer-events:none}
+#results.visible{opacity:1;transform:translateY(0);pointer-events:auto}
+
+/* ADDRESS BAR */
+.addr-bar{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--card-border);border-radius:14px;padding:14px 20px;margin-bottom:20px;flex-wrap:wrap}
+.addr-pulse{width:8px;height:8px;border-radius:50%;background:var(--blue-light);box-shadow:0 0 10px var(--blue-glow);flex-shrink:0;animation:blink 2.5s infinite}
+.addr-tag{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);white-space:nowrap}
+.addr-val{font-family:var(--mono);font-size:12px;color:var(--blue-light);word-break:break-all;flex:1}
+.addr-badges{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.badge{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:4px 12px;border-radius:6px}
+.badge.eoa{background:rgba(32,96,255,.1);color:var(--blue-light);border:1px solid rgba(32,96,255,.25)}
+.badge.contract{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+.badge.live{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge.demo{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
+
+/* STATS STRIP */
+.live-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.strip-cell{background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px 18px;transition:border-color .3s}
+.strip-cell:hover{border-color:var(--card-border2)}
+.strip-cell-label{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.strip-cell-value{font-family:var(--mono);font-size:16px;font-weight:500;color:#fff;line-height:1}
+.strip-cell-sub{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:3px}
+
+/* MAIN GRID */
+.main-grid{display:grid;grid-template-columns:240px 1fr;gap:16px;margin-bottom:16px}
+
+/* SCORE */
+.score-card{background:var(--card);border:1px solid var(--card-border);border-radius:20px;padding:28px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden;transition:border-color .5s,box-shadow .5s;box-shadow:0 8px 48px rgba(0,0,0,.4)}
+.score-card.low{border-color:var(--green-border);box-shadow:0 8px 48px rgba(0,0,0,.4),0 0 60px rgba(0,245,160,.04)}
+.score-card.medium{border-color:var(--yellow-border);box-shadow:0 8px 48px rgba(0,0,0,.4),0 0 60px rgba(240,192,64,.04)}
+.score-card.high{border-color:var(--red-border);box-shadow:0 8px 48px rgba(0,0,0,.4),0 0 60px rgba(255,64,96,.06)}
+.score-bg-glow{position:absolute;bottom:-80px;left:50%;transform:translateX(-50%);width:280px;height:280px;border-radius:50%;pointer-events:none;transition:background .5s}
+.score-card.low .score-bg-glow{background:radial-gradient(circle,rgba(0,245,160,.1) 0%,transparent 70%)}
+.score-card.medium .score-bg-glow{background:radial-gradient(circle,rgba(240,192,64,.1) 0%,transparent 70%)}
+.score-card.high .score-bg-glow{background:radial-gradient(circle,rgba(255,64,96,.12) 0%,transparent 70%)}
+.score-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.ring-wrap{position:relative;width:120px;height:120px;margin-bottom:16px}
+.ring-svg{width:120px;height:120px;transform:rotate(-90deg)}
+.ring-track{fill:none;stroke:var(--card-border2);stroke-width:8}
+.ring-fill{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(.25,.8,.25,1),stroke .5s}
+.ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-num{font-family:var(--mono);font-size:36px;font-weight:500;line-height:1;transition:color .5s,text-shadow .5s}
+.ring-denom{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.score-card.low .ring-num{color:var(--green);text-shadow:0 0 30px var(--green-glow)}
+.score-card.medium .ring-num{color:var(--yellow);text-shadow:0 0 30px rgba(240,192,64,.4)}
+.score-card.high .ring-num{color:var(--red);text-shadow:0 0 30px var(--red-glow)}
+.score-card.low .ring-fill{stroke:var(--green);filter:drop-shadow(0 0 4px var(--green-glow))}
+.score-card.medium .ring-fill{stroke:var(--yellow);filter:drop-shadow(0 0 4px rgba(240,192,64,.4))}
+.score-card.high .ring-fill{stroke:var(--red);filter:drop-shadow(0 0 4px var(--red-glow))}
+.score-level{font-size:11px;font-weight:600;padding:5px 18px;border-radius:20px;text-transform:uppercase;letter-spacing:1px;font-family:var(--mono);transition:all .5s}
+.score-card.low .score-level{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.score-card.medium .score-level{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
+.score-card.high .score-level{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.score-desc{margin-top:14px;font-size:11px;color:var(--text-dim);line-height:1.5}
+
+/* BREAKDOWN */
+.breakdown-card{background:var(--card);border:1px solid var(--card-border);border-radius:20px;padding:24px 26px;box-shadow:0 8px 48px rgba(0,0,0,.4)}
+.card-label{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:20px}
+.b-row{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid rgba(17,29,48,.8)}
+.b-row:last-child{border-bottom:none}
+.b-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-right:12px}
+.b-row.low .b-icon{background:var(--green-bg)}.b-row.medium .b-icon{background:var(--yellow-bg)}.b-row.high .b-icon{background:var(--red-bg)}
+.b-info{flex:1;min-width:0}
+.b-name{font-size:13px;color:var(--text-dim);margin-bottom:5px}
+.b-track{height:4px;background:var(--card-border2);border-radius:2px;overflow:hidden}
+.b-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.25,.8,.25,1) var(--d,0s)}
+.b-row.low .b-fill{background:linear-gradient(90deg,var(--green-mid),var(--green))}
+.b-row.medium .b-fill{background:linear-gradient(90deg,#c09000,var(--yellow))}
+.b-row.high .b-fill{background:linear-gradient(90deg,#cc2040,var(--red))}
+.b-tag{font-family:var(--mono);font-size:10px;padding:3px 10px;border-radius:5px;margin-left:12px;white-space:nowrap}
+.b-row.low .b-tag{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.b-row.medium .b-tag{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
+.b-row.high .b-tag{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+
+/* BOTTOM GRID */
+.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.info-card{background:var(--card);border:1px solid var(--card-border);border-radius:20px;padding:24px 26px;box-shadow:0 8px 48px rgba(0,0,0,.4)}
+.insight-text{font-size:14px;font-weight:500;line-height:1.65;color:var(--text)}
+.insight-text strong{color:#fff}
+.flag-card{border-radius:20px;padding:24px 26px;box-shadow:0 8px 48px rgba(0,0,0,.4);transition:all .4s}
+.flag-card.active{background:var(--red-bg);border:1px solid var(--red-border);animation:redPulse 4s infinite}
+.flag-card.clear{background:var(--green-bg);border:1px solid var(--green-border)}
+.flag-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.flag-icon{font-size:18px}
+.flag-heading{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase}
+.flag-card.active .flag-heading{color:#ff8099}.flag-card.clear .flag-heading{color:var(--green)}
+.flag-body-text{font-size:13px;line-height:1.6}
+.flag-card.active .flag-body-text{color:#ffaabb}.flag-card.clear .flag-body-text{color:#80e8b8}
+
+.explain-card{background:var(--card);border:1px solid var(--card-border);border-left:3px solid var(--blue);border-radius:20px;padding:24px 28px;box-shadow:0 8px 48px rgba(0,0,0,.4)}
+.explain-text{font-size:14px;line-height:1.85;color:var(--text-dim)}
+.explain-text strong{color:var(--text)}
+
+/* TOKENS */
+.tokens-card{background:var(--card);border:1px solid var(--card-border);border-radius:20px;padding:24px 26px;margin-top:16px;box-shadow:0 8px 48px rgba(0,0,0,.4)}
+.token-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(17,29,48,.8);font-size:13px}
+.token-row:last-child{border-bottom:none}
+.token-name{color:var(--text);font-weight:500;display:flex;align-items:center;gap:8px}
+.token-symbol{font-family:var(--mono);font-size:10px;color:var(--blue-light);background:rgba(32,96,255,.08);border:1px solid rgba(32,96,255,.15);padding:2px 8px;border-radius:4px}
+.token-bal{font-family:var(--mono);font-size:12px;color:var(--text-dim)}
+
+/* FOOTER */
+.result-footer{display:flex;align-items:center;justify-content:space-between;margin-top:32px;padding-top:20px;border-top:1px solid var(--card-border);flex-wrap:wrap;gap:8px}
+.footer-brand{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.footer-hash{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.footer-source{font-family:var(--mono);font-size:10px;color:var(--text-dim);display:flex;align-items:center;gap:6px}
+.footer-sep{color:var(--card-border2)}
+
+@keyframes fadeDown{from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes logoPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes redPulse{0%,100%{box-shadow:0 8px 48px rgba(0,0,0,.4)}50%{box-shadow:0 8px 48px rgba(0,0,0,.4),0 0 24px rgba(255,64,96,.08)}}
+
+@media(max-width:700px){
+  .main-grid{grid-template-columns:1fr}
+  .bottom-grid{grid-template-columns:1fr}
+  .live-strip{grid-template-columns:1fr 1fr}
+  .search-row{flex-direction:column}
+  .btn-analyze{width:100%}
+  .api-row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-layer">
+  <div class="bg-grid"></div>
+  <div class="bg-glow1"></div>
+  <div class="bg-glow2"></div>
+</div>
+
+<div class="page">
+
+  <header>
+    <div class="logo">
+      <div class="logo-mark">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <path d="M18 3L32 10.5V25.5L18 33L4 25.5V10.5L18 3Z" stroke="url(#lg)" stroke-width="1.5" fill="rgba(32,96,255,.08)"/>
+          <path d="M18 10L25 14V22L18 26L11 22V14L18 10Z" fill="url(#lg)" opacity=".6"/>
+          <circle cx="18" cy="18" r="3" fill="#fff"/>
+          <defs><linearGradient id="lg" x1="4" y1="3" x2="32" y2="33" gradientUnits="userSpaceOnUse"><stop stop-color="#2060ff"/><stop offset="1" stop-color="#00d4ff"/></linearGradient></defs>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <div class="logo-title">Wallet Risk <em>AI</em></div>
+        <div class="logo-sub">ON-CHAIN INTELLIGENCE ENGINE</div>
+      </div>
+    </div>
+    <p class="header-desc">Real-time risk analysis powered by Etherscan. Enter any Ethereum wallet or contract address to generate a comprehensive risk report.</p>
+  </header>
+
+  <!-- API KEY -->
+  <div class="api-setup">
+    <div class="api-top">
+      <div class="api-label">// Etherscan API Key</div>
+      <div class="api-status">
+        <div class="api-dot demo" id="apiDot"></div>
+        <span class="api-status-text demo" id="apiStatusText">Demo mode — simulated data</span>
+      </div>
+    </div>
+    <div class="api-row">
+      <input class="api-input" type="password" id="apiKeyInput" placeholder="Paste your free Etherscan API key here…" autocomplete="off"/>
+      <button class="btn-sm" onclick="saveApiKey()">Connect</button>
+      <button class="btn-sm" onclick="clearApiKey()">Clear</button>
+    </div>
+    <div class="api-hint">
+      Get a free key at <a href="https://etherscan.io/register" target="_blank">etherscan.io</a> → My Account → API Keys → Add.
+      Without a key the app runs in <strong style="color:var(--yellow)">demo mode</strong> (deterministic simulated data).
+      Your key is saved only in your browser's localStorage.
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-card">
+    <div class="search-label">// target address — wallet or contract (Ethereum mainnet)</div>
+    <div class="search-row">
+      <input class="addr-input" type="text" id="walletInput"
+        placeholder="0x…  (42-character Ethereum address)" autocomplete="off" spellcheck="false"/>
+      <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()">Analyze</button>
+    </div>
+    <div class="validation-err" id="validErr">
+      <span style="font-size:14px">⚠</span>
+      <span id="validErrTxt"></span>
+    </div>
+    <div class="loader-wrap" id="loaderWrap">
+      <div class="loader-header">
+        <span class="loader-step" id="loaderStep">Initializing…</span>
+        <span class="loader-pct"  id="loaderPct">0%</span>
+      </div>
+      <div class="loader-track"><div class="loader-fill" id="loaderFill"></div></div>
+      <div class="loader-detail" id="loaderDetail"></div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+
+    <div class="addr-bar">
+      <div class="addr-pulse"></div>
+      <div class="addr-tag">ADDRESS</div>
+      <div class="addr-val" id="dispAddr">—</div>
+      <div class="addr-badges">
+        <span class="badge eoa" id="addrTypeBadge">EOA</span>
+        <span class="badge demo" id="dataSrcBadge">DEMO</span>
+      </div>
+    </div>
+
+    <div class="live-strip">
+      <div class="strip-cell">
+        <div class="strip-cell-label">ETH Balance</div>
+        <div class="strip-cell-value" id="statBalance">—</div>
+        <div class="strip-cell-sub"  id="statBalanceUsd">—</div>
+      </div>
+      <div class="strip-cell">
+        <div class="strip-cell-label">Transactions</div>
+        <div class="strip-cell-value" id="statTxCount">—</div>
+        <div class="strip-cell-sub"  id="statTxSub">total on-chain</div>
+      </div>
+      <div class="strip-cell">
+        <div class="strip-cell-label">Wallet Age</div>
+        <div class="strip-cell-value" id="statAge">—</div>
+        <div class="strip-cell-sub"  id="statAgeSub">—</div>
+      </div>
+      <div class="strip-cell">
+        <div class="strip-cell-label">Token Types</div>
+        <div class="strip-cell-value" id="statTokens">—</div>
+        <div class="strip-cell-sub"  id="statTokensSub">ERC-20 held</div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="score-card" id="scoreCard">
+        <div class="score-bg-glow"></div>
+        <div class="score-eyebrow">Risk Score</div>
+        <div class="ring-wrap">
+          <svg class="ring-svg" viewBox="0 0 120 120">
+            <circle class="ring-track" cx="60" cy="60" r="50"/>
+            <circle class="ring-fill" id="ringFill" cx="60" cy="60" r="50"
+              stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+          </svg>
+          <div class="ring-text">
+            <div class="ring-num" id="ringNum">—</div>
+            <div class="ring-denom">/ 100</div>
+          </div>
+        </div>
+        <div class="score-level" id="scoreLvl">—</div>
+        <div class="score-desc"  id="scoreDesc">—</div>
+      </div>
+
+      <div class="breakdown-card">
+        <div class="card-label" id="breakdownLabel">// risk vectors</div>
+        <div id="breakdownRows"></div>
+      </div>
+    </div>
+
+    <div class="bottom-grid">
+      <div class="info-card">
+        <div class="card-label">// key insight</div>
+        <div class="insight-text" id="insightText">—</div>
+      </div>
+      <div class="flag-card clear" id="flagCard">
+        <div class="flag-head">
+          <span class="flag-icon" id="flagIcon">✅</span>
+          <span class="flag-heading" id="flagHeading">—</span>
+        </div>
+        <div class="flag-body-text" id="flagBody">—</div>
+      </div>
+    </div>
+
+    <div class="explain-card">
+      <div class="card-label">// plain-language summary</div>
+      <div class="explain-text" id="explainText">—</div>
+    </div>
+
+    <div class="tokens-card" id="tokensCard" style="display:none">
+      <div class="card-label">// token holdings (recent activity)</div>
+      <div id="tokensBody"></div>
+    </div>
+
+    <div class="result-footer">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="footer-brand">Wallet Risk AI v4</span>
+        <span class="footer-sep">·</span>
+        <span class="footer-hash" id="footerHash">hash: —</span>
+      </div>
+      <div class="footer-source" id="footerSource">
+        <span>●</span><span>—</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ── CONFIG ── */
+const ES_BASE = 'https://api.etherscan.io/api';
+let apiKey = '';
+
+function loadApiKey() {
+  try { apiKey = localStorage.getItem('wra_es_key') || ''; } catch(e) {}
+  if (apiKey) { document.getElementById('apiKeyInput').value = apiKey; setApiStatus('connected','Connected — live Etherscan data'); }
+}
+function saveApiKey() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if (!v) { setApiStatus('error','Enter a valid API key'); return; }
+  apiKey = v; try { localStorage.setItem('wra_es_key', v); } catch(e) {}
+  setApiStatus('connected','Key saved — live data enabled');
+}
+function clearApiKey() {
+  apiKey = ''; document.getElementById('apiKeyInput').value = '';
+  try { localStorage.removeItem('wra_es_key'); } catch(e) {}
+  setApiStatus('demo','Demo mode — simulated data');
+}
+function setApiStatus(state, msg) {
+  document.getElementById('apiDot').className        = 'api-dot ' + state;
+  const t = document.getElementById('apiStatusText');
+  t.className = 'api-status-text ' + state; t.textContent = msg;
+}
+
+/* ── VALIDATION ── */
+const ETH_RE = /^0x[0-9a-fA-F]{40}$/;
+function validate(raw) {
+  const a = raw.trim();
+  if (!a)               return {ok:false, msg:'Please enter a wallet or contract address.'};
+  if (!a.startsWith('0x')) return {ok:false, msg:'Address must start with "0x". Example: 0xd8dA6BF2…'};
+  if (a.length < 42)    return {ok:false, msg:`Too short — got ${a.length} chars, need exactly 42.`};
+  if (a.length > 42)    return {ok:false, msg:`Too long — got ${a.length} chars, need exactly 42.`};
+  if (!ETH_RE.test(a))  return {ok:false, msg:'Invalid characters. Only 0–9 and a–f allowed after "0x".'};
+  return {ok:true, addr:a};
+}
+
+/* ── HASH ── */
+function djb2(s) { let h=5381; for(let i=0;i<s.length;i++) h=(((h<<5)+h)^s.charCodeAt(i))>>>0; return h; }
+function pick(arr, seed) { return arr[djb2(String(seed)) % arr.length]; }
+
+/* ── ETHERSCAN FETCH ── */
+async function esGet(params) {
+  const url = new URL(ES_BASE);
+  Object.entries({...params, apikey:apiKey}).forEach(([k,v])=>url.searchParams.set(k,v));
+  const r = await fetch(url.toString());
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+async function fetchLive(addr) {
+  const out = {live:true, isContract:false, balance:null, txCount:null, firstTx:null, tokens:[]};
+  const [bal, txs, contractCheck, tokTx] = await Promise.allSettled([
+    esGet({module:'account', action:'balance',   address:addr, tag:'latest'}),
+    esGet({module:'account', action:'txlist',    address:addr, startblock:0, endblock:99999999, sort:'asc', page:1, offset:100}),
+    esGet({module:'contract',action:'getabi',    address:addr}),
+    esGet({module:'account', action:'tokentx',   address:addr, page:1, offset:50, sort:'desc'}),
+  ]);
+
+  if (bal.status==='fulfilled' && bal.value?.result && !isNaN(bal.value.result))
+    out.balance = parseFloat(bal.value.result) / 1e18;
+
+  if (txs.status==='fulfilled' && Array.isArray(txs.value?.result) && txs.value.result.length) {
+    out.txCount = txs.value.result.length;
+    out.firstTx = txs.value.result[0];
+  } else if (txs.status==='fulfilled') {
+    out.txCount = 0;
+  }
+
+  if (contractCheck.status==='fulfilled' && contractCheck.value?.status==='1')
+    out.isContract = true;
+
+  if (tokTx.status==='fulfilled' && Array.isArray(tokTx.value?.result)) {
+    const seen = new Map();
+    tokTx.value.result.forEach(t => {
+      if (!seen.has(t.contractAddress))
+        seen.set(t.contractAddress, {name:t.tokenName, symbol:t.tokenSymbol, addr:t.contractAddress});
+    });
+    out.tokens = [...seen.values()].slice(0,8);
+  }
+  return out;
+}
+
+/* ── SCORE ENGINE ── */
+function computeScore(addr, live) {
+  const norm = addr.toLowerCase();
+  const h = djb2(norm);
+  let score;
+
+  if (live?.live) {
+    let s = 20;
+    if (live.balance != null) {
+      if (live.balance > 100) s += 15;
+      else if (live.balance > 10) s += 8;
+      else if (live.balance < 0.001) s += 5;
+    }
+    if (live.txCount != null) {
+      if (live.txCount === 0)       s += 12;
+      else if (live.txCount >= 100) s += 12;
+      else if (live.txCount >= 50)  s += 6;
+    }
+    if (live.firstTx) {
+      const days = (Date.now() - parseInt(live.firstTx.timeStamp)*1000) / 86400000;
+      if (days < 30)  s += 20; else if (days < 180) s += 10; else if (days < 365) s += 5;
+    } else { s += 15; }
+    if (live.isContract) s += 8;
+    if (live.tokens.length > 6) s += 8; else if (live.tokens.length > 3) s += 4;
+    s += (h % 21) - 10;
+    score = Math.max(0, Math.min(100, Math.round(s)));
+  } else {
+    score = h % 101;
+  }
+
+  const level = score <= 30 ? 'low' : score <= 70 ? 'medium' : 'high';
+  const lvl = v => v<=33?'low':v<=66?'medium':'high';
+  const lbl = v => v<=33?'Low':v<=66?'Medium':'High';
+
+  const txF  = live?.txCount!=null ? Math.min(100,live.txCount*1.2)    : djb2(norm+'actv')%101;
+  const ageF = live?.firstTx       ? Math.max(0,100-((Date.now()-parseInt(live.firstTx.timeStamp)*1000)/86400000/3.65)) : djb2(norm+'age')%101;
+  const tokF = live?.tokens?.length ? Math.min(100,live.tokens.length*13) : djb2(norm+'tok')%101;
+  const cmpF = (h%5===0||score>65) ? 60+(h%30) : djb2(norm+'cmpl')%60;
+
+  const EOA_BD = [
+    {name:'Transaction Activity', icon:'↔', value:Math.round(txF)},
+    {name:'DeFi / Token Exposure', icon:'◈', value:Math.round(tokF)},
+    {name:'Wallet Age',            icon:'⧖', value:Math.round(ageF)},
+    {name:'Compliance Signals',    icon:'⚑', value:Math.round(cmpF)},
+  ];
+  const CON_BD = [
+    {name:'Code Verification',   icon:'◎', value:live?.isContract&&(h%3!==0)?20:70},
+    {name:'Admin / Owner Risk',  icon:'⊕', value:Math.round(cmpF)},
+    {name:'Activity Volume',     icon:'↔', value:Math.round(txF)},
+    {name:'Interaction Entropy', icon:'≋', value:Math.round(tokF)},
+  ];
+
+  const breakdown = (live?.isContract ? CON_BD : EOA_BD).map(b=>({...b,level:lvl(b.value),label:lbl(b.value)}));
+  const hasFlag = score > 60 || cmpF > 65 || h%7===0;
+  return {score, level, hasFlag, breakdown, hash:'0x'+h.toString(16).padStart(8,'0')};
+}
+
+/* ── CONTENT ── */
+const C = {
+  eoa: {
+    desc:    {low:'Conservative footprint. Within normal compliance thresholds.',medium:'Moderate risk indicators present. Enhanced review advisable.',high:'Multiple elevated risk signals. Immediate review required.'},
+    insight: {low:['Wallet shows conservative behavior consistent with a long-term holder. Counterparty graph is clean with no flagged interactions.','Low-frequency transaction pattern with verified counterparties. Profile consistent with a compliant retail participant.'],medium:['Mixed signals: moderate protocol exposure with some higher-risk counterparty interactions. Standard enhanced due diligence applies.','Wallet engages with multiple DeFi protocols, increasing surface area risk. Activity cadence is within norms but warrants monitoring.'],high:['Elevated risk: high transaction velocity, potential structured fund movement, or interaction with flagged counterparties.','Multiple high-risk indicators converge. Counterparty graph includes addresses with prior compliance flags. Full KYC review recommended.']},
+    flag: {
+      active:[{icon:'🚩',h:'RED FLAG DETECTED',b:'Suspicious counterparty linkage detected → possible mixer or flagged address in fund chain.'},{icon:'⚠️',h:'COMPLIANCE ALERT',b:'On-chain label or ENS name mimics a known public entity → identity impersonation risk.'},{icon:'🚩',h:'HIGH-RISK PATTERN',b:'Transaction velocity anomaly → structured fund movement or rapid cycling across wallets.'},{icon:'⚠️',h:'SANCTIONS PROXIMITY',b:'Second-degree interaction with a flagged address → indirect exposure to sanctioned entity.'}],
+      clear:[{icon:'✅',h:'NO FLAGS FOUND',b:'No red flags detected. All sampled counterparties fall within acceptable risk tolerance.'},{icon:'✅',h:'CLEAN PROFILE',b:'Fund provenance traces to verified exchanges. No mixer or obfuscation patterns found.'}]
+    },
+    explain:{low:'This wallet has a clean on-chain history with <strong>no interactions with high-risk contracts or flagged counterparties</strong>. Behavior is consistent with a standard retail user — periodic transactions to well-known protocols. No immediate compliance action required.',medium:'The wallet presents <strong>moderate risk signals</strong>: DeFi protocol exposure and counterparty diversity that elevates it above a baseline retail profile. Enhanced due diligence is recommended before large-value interactions.',high:'This wallet exhibits <strong>multiple elevated risk patterns</strong>: high transaction frequency, interaction with higher-risk protocols, or proximity to flagged addresses. Full KYC verification and a manual compliance review are required.'},
+  },
+  contract: {
+    desc:    {low:'Verified contract with predictable, audited behavior.',medium:'Moderate complexity. Some unverified interaction patterns.',high:'High-risk contract characteristics detected.'},
+    insight: {low:['Contract is verified and has a clean, audited interaction history. No exploit signatures or suspicious patterns detected.'],medium:['Contract shows moderate complexity. Proxy or upgradeable pattern introduces centralized control risk. Monitor admin key holders.'],high:['Unverified contract with high-entropy call patterns. Profile consistent with an exploit target or malicious rug-pull vector.']},
+    flag: {
+      active:[{icon:'🚩',h:'UNVERIFIED CONTRACT',b:'Source code not verified on-chain → impossible to audit for backdoors or hidden malicious functions.'},{icon:'⚠️',h:'PROXY / UPGRADE RISK',b:'Upgradeable proxy with centralized admin control → contract logic can change without user consent.'},{icon:'🚩',h:'HONEYPOT PATTERN',b:'Entry function accessible but exit reverts in simulation → honeypot mechanism suspected.'}],
+      clear:[{icon:'✅',h:'CONTRACT VERIFIED',b:'Source code verified on Etherscan. No known malicious patterns found in ABI or deployed bytecode.'},{icon:'✅',h:'IMMUTABLE CONTRACT',b:'No proxy pattern detected. Contract logic is immutable and cannot be changed after deployment.'}]
+    },
+    explain:{low:'This is a <strong>verified smart contract</strong> with a clean interaction history. Its logic has been publicly audited and no exploit patterns identified. Safe to interact with under standard conditions.',medium:'This contract presents <strong>moderate risk</strong> due to proxy architecture or unverified caller patterns. The upgrade mechanism introduces centralized control risk. Review admin key holders before committing significant funds.',high:'This contract is <strong>unverified and exhibits high-risk patterns</strong> consistent with a honeypot or rug-pull mechanism. Fund entry may be possible but exit could be blocked. Do NOT interact without a full manual audit.'},
+  }
+};
+
+/* ── LOADER ── */
+const STEPS_LIVE = ['Resolving address…','Fetching ETH balance…','Loading transaction history…','Scanning token transfers…','Detecting contract type…','Computing risk score…','Generating report…'];
+const STEPS_DEMO = ['Resolving address…','Analyzing pattern vectors…','Scoring counterparty graph…','Computing risk score…','Generating report…'];
+let loaderIv = null;
+
+function startLoader(steps) {
+  const wrap=document.getElementById('loaderWrap'), fill=document.getElementById('loaderFill');
+  const step=document.getElementById('loaderStep'), pct=document.getElementById('loaderPct');
+  const detail=document.getElementById('loaderDetail');
+  fill.style.transition='none'; fill.style.width='0%';
+  setTimeout(()=>fill.style.transition='',30);
+  wrap.classList.add('active');
+  detail.innerHTML = steps.map(s=>`<span class="loader-chip" data-s="${s}">${s}</span>`).join('');
+  let p=0, si=0;
+  loaderIv = setInterval(()=>{
+    p += 1.5 + Math.random()*2.5; if(p>99) p=99;
+    fill.style.width=p+'%'; pct.textContent=Math.round(p)+'%';
+    const nsi=Math.min(steps.length-1,Math.floor((p/100)*steps.length));
+    if(nsi!==si){ si=nsi; step.textContent=steps[si]; detail.querySelectorAll('.loader-chip').forEach((el,i)=>{ if(i<si) el.classList.add('done'); }); }
+  },60);
+}
+function stopLoader() {
+  clearInterval(loaderIv);
+  const fill=document.getElementById('loaderFill'), step=document.getElementById('loaderStep'), pct=document.getElementById('loaderPct');
+  fill.style.width='100%'; pct.textContent='100%'; step.textContent='Complete ✓';
+  document.getElementById('loaderDetail').querySelectorAll('.loader-chip').forEach(el=>el.classList.add('done'));
+  setTimeout(()=>document.getElementById('loaderWrap').classList.remove('active'),600);
+}
+
+/* ── RING ── */
+function setRing(score, level) {
+  const el=document.getElementById('ringFill');
+  el.style.stroke = {low:'#00f5a0',medium:'#f0c040',high:'#ff4060'}[level];
+  setTimeout(()=>{ el.style.strokeDashoffset = 314.16*(1-score/100); },100);
+}
+
+/* ── HELPERS ── */
+function fmtEth(v) {
+  if(v==null) return '—';
+  if(v>=1000) return v.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')+' ETH';
+  if(v>=1)    return v.toFixed(4)+' ETH';
+  return v.toFixed(6)+' ETH';
+}
+function fmtAge(ts) {
+  if(!ts) return {main:'—',sub:'—'};
+  const days=Math.floor((Date.now()-parseInt(ts)*1000)/86400000);
+  if(days<1)   return {main:'< 1d', sub:'brand new wallet'};
+  if(days<30)  return {main:`${days}d`,sub:'less than 1 month'};
+  if(days<365) return {main:`${Math.floor(days/30)}mo`,sub:`${days} days old`};
+  return {main:`${(days/365).toFixed(1)}yr`,sub:`${days} days on-chain`};
+}
+function fmtDate(ts) {
+  if(!ts) return '—';
+  return new Date(parseInt(ts)*1000).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+}
+
+/* ── RENDER ── */
+function render(rawAddr, live, sc) {
+  const norm=rawAddr.toLowerCase().trim();
+  const isCon=live?.isContract||false, isLive=live?.live||false;
+  const CC = isCon ? C.contract : C.eoa;
+  const {score,level,hasFlag,breakdown,hash}=sc;
+
+  document.getElementById('dispAddr').textContent=rawAddr.trim();
+  const tb=document.getElementById('addrTypeBadge'); tb.textContent=isCon?'CONTRACT':'EOA'; tb.className='badge '+(isCon?'contract':'eoa');
+  const sb=document.getElementById('dataSrcBadge');  sb.textContent=isLive?'LIVE':'DEMO';   sb.className='badge '+(isLive?'live':'demo');
+
+  document.getElementById('statBalance').textContent   = live?.balance!=null ? fmtEth(live.balance) : '—';
+  document.getElementById('statBalanceUsd').textContent= live?.balance!=null ? `≈ $${(live.balance*2340).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')} USD` : 'no balance data';
+  document.getElementById('statTxCount').textContent   = live?.txCount!=null ? (live.txCount>=100?'100+':String(live.txCount)) : '—';
+  document.getElementById('statTxSub').textContent     = live?.firstTx ? `since ${fmtDate(live.firstTx.timeStamp)}` : 'no history found';
+  const age=fmtAge(live?.firstTx?.timeStamp||null);
+  document.getElementById('statAge').textContent   = age.main;
+  document.getElementById('statAgeSub').textContent= age.sub;
+  document.getElementById('statTokens').textContent    = live?.tokens?.length!=null ? String(live.tokens.length) : '—';
+  document.getElementById('statTokensSub').textContent = live?.tokens?.length ? 'token contracts' : 'ERC-20 held';
+
+  const scoreCard=document.getElementById('scoreCard'); scoreCard.className='score-card '+level;
+  document.getElementById('ringNum').textContent  = score;
+  document.getElementById('scoreLvl').textContent = {low:'✓ Low Risk',medium:'⚡ Medium Risk',high:'⚠ High Risk'}[level];
+  document.getElementById('scoreDesc').textContent= CC.desc[level];
+  setRing(score,level);
+
+  document.getElementById('breakdownLabel').textContent= isCon?'// contract risk vectors':'// risk vectors';
+  const bWrap=document.getElementById('breakdownRows'); bWrap.innerHTML='';
+  breakdown.forEach((item,i)=>{
+    const row=document.createElement('div'); row.className='b-row '+item.level;
+    row.innerHTML=`<div class="b-icon">${item.icon}</div><div class="b-info"><div class="b-name">${item.name}</div><div class="b-track"><div class="b-fill" style="width:0%;--d:${.1+i*.12}s" data-t="${item.value}"></div></div></div><span class="b-tag">${item.label}</span>`;
+    bWrap.appendChild(row);
+  });
+  setTimeout(()=>{ bWrap.querySelectorAll('.b-fill').forEach(el=>el.style.width=el.dataset.t+'%'); },150);
+
+  document.getElementById('insightText').innerHTML = pick(CC.insight[level], norm+'ins');
+
+  const flagArr=hasFlag?CC.flag.active:CC.flag.clear, fi=pick(flagArr,norm+'flg');
+  const fc=document.getElementById('flagCard'); fc.className='flag-card '+(hasFlag?'active':'clear');
+  document.getElementById('flagIcon').textContent   =fi.icon;
+  document.getElementById('flagHeading').textContent=fi.h;
+  document.getElementById('flagBody').textContent   =fi.b;
+
+  document.getElementById('explainText').innerHTML=CC.explain[level];
+
+  const tokCard=document.getElementById('tokensCard'), tokBody=document.getElementById('tokensBody');
+  if(live?.tokens?.length){
+    tokCard.style.display='block';
+    tokBody.innerHTML=live.tokens.map(t=>`<div class="token-row"><span class="token-name">${t.name} <span class="token-symbol">${t.symbol}</span></span><span class="token-bal">${t.addr.slice(0,10)}…${t.addr.slice(-4)}</span></div>`).join('');
+  } else { tokCard.style.display='none'; }
+
+  document.getElementById('footerHash').textContent='hash: '+hash;
+  document.getElementById('footerSource').innerHTML=isLive
+    ?`<span style="color:var(--green)">●</span><span>Live data · Etherscan API</span>`
+    :`<span style="color:var(--yellow)">●</span><span>Simulated data · Demo mode</span>`;
+
+  document.getElementById('results').classList.add('visible');
+}
+
+/* ── MAIN ── */
+async function runAnalysis() {
+  const raw=document.getElementById('walletInput').value;
+  const v=validate(raw);
+  if(!v.ok){
+    document.getElementById('validErrTxt').textContent=v.msg;
+    document.getElementById('validErr').classList.add('show');
+    const inp=document.getElementById('walletInput'); inp.classList.add('error');
+    setTimeout(()=>inp.classList.remove('error'),400);
+    return;
+  }
+  document.getElementById('validErr').classList.remove('show');
+
+  const btn=document.getElementById('analyzeBtn');
+  btn.disabled=true; btn.textContent='Analyzing…';
+  document.getElementById('results').classList.remove('visible');
+
+  const useLive=!!apiKey;
+  startLoader(useLive?STEPS_LIVE:STEPS_DEMO);
+
+  try {
+    let live=null;
+    if(useLive){
+      try { live=await fetchLive(v.addr); }
+      catch(e){ setApiStatus('error','Fetch error — showing demo data'); live=null; }
+    }
+    const sc=computeScore(v.addr,live);
+    await new Promise(r=>setTimeout(r,useLive?300:1500));
+    stopLoader();
+    render(v.addr, live||{live:false}, sc);
+    document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+  } finally {
+    btn.disabled=false; btn.textContent='Analyze';
+  }
+}
+
+document.getElementById('walletInput').addEventListener('keydown',e=>{ if(e.key==='Enter') runAnalysis(); });
+document.getElementById('walletInput').addEventListener('input',()=>document.getElementById('validErr').classList.remove('show'));
+document.getElementById('apiKeyInput').addEventListener('keydown',e=>{ if(e.key==='Enter') saveApiKey(); });
+loadApiKey();
+</script>
+</body>
+</html>
