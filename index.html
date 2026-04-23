@@ -605,7 +605,7 @@ body {
       <div class="status-dot off" id="esDot"></div>
       <div class="status-label" id="esLbl">Not connected — using demo data</div>
       <div style="flex:1"></div>
-      <input class="cfg-input" type="password" id="esKey" placeholder="Etherscan API key (free at etherscan.io)" style="max-width:320px"/>
+      <input class="cfg-input" type="text" id="esKey" placeholder="Etherscan API key" style="max-width:340px" maxlength="64" autocomplete="off" spellcheck="false"/>
       <button class="cfg-btn" onclick="saveEs()">Connect</button>
       <button class="cfg-btn" onclick="clearEs()">Clear</button>
     </div>
@@ -614,7 +614,7 @@ body {
       <div class="status-dot off" id="aiDot"></div>
       <div class="status-label" id="aiLbl">Not connected — insights will be template-based</div>
       <div style="flex:1"></div>
-      <input class="cfg-input" type="password" id="aiKey" placeholder="Anthropic API key (console.anthropic.com)" style="max-width:320px"/>
+      <input class="cfg-input" type="text" id="aiKey" placeholder="sk-ant-api03-..." style="max-width:340px" maxlength="250" autocomplete="off" spellcheck="false"/>
       <button class="cfg-btn" onclick="saveAi()">Connect</button>
       <button class="cfg-btn" onclick="clearAi()">Clear</button>
     </div>
@@ -1024,15 +1024,31 @@ Rules:
 - Keep total response under 220 words
 - Do not use headers or bullet points, just paragraphs`;
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 400,
-      messages: [{ role:'user', content:prompt }]
-    })
-  });
+  // Intenta primero el servidor local (evita CORS), si no hay servidor usa directo
+  let resp;
+  try {
+    resp = await fetch('http://localhost:3000/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role:'user', content:prompt }] }),
+      signal: AbortSignal.timeout(15000)
+    });
+  } catch(localErr) {
+    // Sin servidor local → intento directo (puede fallar por CORS)
+    resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': aiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
+        messages: [{ role:'user', content:prompt }]
+      })
+    });
+  }
 
   if (!resp.ok) throw new Error('Claude API error: ' + resp.status);
   const data = await resp.json();
