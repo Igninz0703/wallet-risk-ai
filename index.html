@@ -855,39 +855,67 @@ async function esGet(params) {
 }
 
 async function fetchOnChain(addr) {
-  const out = { live:true, isContract:false, balance:null, txCount:null, firstTs:null, lastTs:null, tokens:[], ethPrice:2340 };
+  const out = { live:true, isContract:false, balance:null, txCount:null, firstTs:null, lastTs:null, tokens:[], ethPrice:2340, txList:[] };
+  const delay = ms => new Promise(r => setTimeout(r, ms));
 
-  const [bal, txs, abi, tokTx, price] = await Promise.allSettled([
-    esGet({ module:'account', action:'balance',   address:addr, tag:'latest' }),
-    esGet({ module:'account', action:'txlist',    address:addr, startblock:0, endblock:99999999, sort:'asc', page:1, offset:200 }),
-    esGet({ module:'contract',action:'getabi',    address:addr }),
-    esGet({ module:'account', action:'tokentx',   address:addr, page:1, offset:50, sort:'desc' }),
+  // ── STEP 1: Balance + ETH price (2 calls) ──
+  const [bal, price] = await Promise.allSettled([
+    esGet({ module:'account', action:'balance', address:addr, tag:'latest' }),
     esGet({ module:'stats',   action:'ethprice' }),
   ]);
+  await delay(250);
 
-  if (bal.status==='fulfilled' && !isNaN(bal.value?.result))
+  if (bal.status==='fulfilled' && bal.value?.result && !isNaN(bal.value.result))
     out.balance = parseFloat(bal.value.result) / 1e18;
+  if (price.status==='fulfilled' && price.value?.result?.ethusd)
+    out.ethPrice = parseFloat(price.value.result.ethusd);
 
-  if (txs.status==='fulfilled' && Array.isArray(txs.value?.result)) {
-    out.txCount = txs.value.result.length;
-    if (txs.value.result.length > 0) {
-      out.firstTs = parseInt(txs.value.result[0].timeStamp);
-      out.lastTs  = parseInt(txs.value.result[txs.value.result.length-1].timeStamp);
+  // ── STEP 2: Contract detection ──
+  const abi = await esGet({ module:'contract', action:'getabi', address:addr }).catch(()=>null);
+  await delay(250);
+  const isContract = abi?.status==='1';
+  out.isContract = isContract;
+
+  // ── STEP 3: Transactions ──
+  const txs = await esGet({ module:'account', action:'txlist', address:addr, startblock:0, endblock:99999999, sort:'asc', page:1, offset:200 }).catch(()=>null);
+  await delay(250);
+
+  if (txs && Array.isArray(txs.result) && txs.result.length > 0) {
+    out.txList  = txs.result;
+    out.txCount = txs.result.length;
+    out.firstTs = parseInt(txs.result[0].timeStamp);
+    out.lastTs  = parseInt(txs.result[txs.result.length-1].timeStamp);
+  } else {
+    // Fallback: internal txs (contracts often have 0 normal txs)
+    const txInt = await esGet({ module:'account', action:'txlistinternal', address:addr, startblock:0, endblock:99999999, sort:'asc', page:1, offset:20 }).catch(()=>null);
+    await delay(250);
+    if (txInt && Array.isArray(txInt.result) && txInt.result.length > 0) {
+      out.txList  = txInt.result;
+      out.txCount = txInt.result.length;
+      out.firstTs = parseInt(txInt.result[0].timeStamp);
+    } else {
+      out.txCount = 0;
     }
-    out.txList = txs.value.result;
-  } else { out.txCount = 0; }
+  }
 
-  if (abi.status==='fulfilled' && abi.value?.status==='1') out.isContract = true;
+  // ── STEP 4: Token transfers ──
+  const tokTx = await esGet({ module:'account', action:'tokentx', address:addr, page:1, offset:50, sort:'desc' }).catch(()=>null);
 
-  if (tokTx.status==='fulfilled' && Array.isArray(tokTx.value?.result)) {
+  if (tokTx && Array.isArray(tokTx.result) && tokTx.result.length > 0) {
+    // Estimate age from token transfers if no normal txs found
+    if (out.txCount === 0) {
+      out.txCount = tokTx.result.length;
+      out.firstTs = parseInt(tokTx.result[tokTx.result.length-1].timeStamp);
+    }
     const seen = new Map();
-    tokTx.value.result.forEach(t => {
+    tokTx.result.forEach(t => {
       if (!seen.has(t.contractAddress))
         seen.set(t.contractAddress, { name:t.tokenName, symbol:t.tokenSymbol, addr:t.contractAddress });
     });
     out.tokens = [...seen.values()].slice(0,10);
   }
 
+  // ETH price real — already set above
   if (price.status==='fulfilled' && price.value?.result?.ethusd)
     out.ethPrice = parseFloat(price.value.result.ethusd);
 
@@ -896,93 +924,136 @@ async function fetchOnChain(addr) {
 
 /* ═══════════════════════════════════════════
    SCORE ENGINE — transparent, auditable
+   Null-safe: all inputs validated before use
 ═══════════════════════════════════════════ */
 function scoreWallet(addr, d) {
   const components = [];
   let total = 0;
 
-  // ── Base: always start neutral ──
-  const base = 15;
-  components.push({ label:'Baseline', pts:base, note:'Starting baseline score' });
-  total += base;
+  // Helper: djb2 hash for deterministic demo scores
+  function djb2(s) { let v=5381; for(let i=0;i<s.length;i++) v=(((v<<5)+v)^s.charCodeAt(i))>>>0; return v; }
+
+  // ── BASE ──
+  total += 10;
+  components.push({ label:'Baseline', pts:10, note:'Starting baseline score' });
 
   if (d.live) {
-    // Age risk: new wallet = higher risk
-    let agePts = 0;
-    if (d.firstTs === null) {
-      agePts = 20; components.push({ label:'Wallet Age', pts:agePts, note:'No transaction history — brand new or unused wallet' });
+
+    // ── 1. WALLET AGE ──
+    // Null-safe: if firstTs is null/undefined/0, treat as brand new
+    const firstTs = (d.firstTs && d.firstTs > 0) ? d.firstTs : null;
+    if (firstTs === null) {
+      total += 18;
+      components.push({ label:'Wallet Age', pts:18, note:'No transaction history found — brand new or unused wallet' });
     } else {
-      const days = (Date.now()/1000 - d.firstTs) / 86400;
-      if (days < 7)        { agePts = 20; components.push({ label:'Wallet Age', pts:20, note:`Only ${Math.round(days)} days old — very new wallet` }); }
-      else if (days < 30)  { agePts = 14; components.push({ label:'Wallet Age', pts:14, note:`${Math.round(days)} days old — less than 1 month` }); }
-      else if (days < 180) { agePts = 8;  components.push({ label:'Wallet Age', pts:8,  note:`${Math.round(days)} days old — less than 6 months` }); }
-      else if (days < 365) { agePts = 3;  components.push({ label:'Wallet Age', pts:3,  note:`${Math.round(days/30)} months old` }); }
-      else                 { agePts = 0;  components.push({ label:'Wallet Age', pts:0,  note:`${(days/365).toFixed(1)} years old — established wallet` }); }
+      const days = Math.max(0, (Date.now()/1000 - firstTs) / 86400);
+      if      (days < 7)   { total += 18; components.push({ label:'Wallet Age', pts:18, note:`${Math.round(days)} days old — very new wallet` }); }
+      else if (days < 30)  { total += 12; components.push({ label:'Wallet Age', pts:12, note:`${Math.round(days)} days old — less than 1 month` }); }
+      else if (days < 180) { total += 7;  components.push({ label:'Wallet Age', pts:7,  note:`${Math.round(days)} days old — less than 6 months` }); }
+      else if (days < 365) { total += 3;  components.push({ label:'Wallet Age', pts:3,  note:`${Math.round(days/30)} months old` }); }
+      else if (days < 730) { total += 1;  components.push({ label:'Wallet Age', pts:1,  note:`${(days/365).toFixed(1)} years old` }); }
+      else                 { total += 0;  components.push({ label:'Wallet Age', pts:0,  note:`${(days/365).toFixed(1)} years old — long-established wallet` }); }
     }
-    total += agePts;
 
-    // Transaction volume risk
-    let txPts = 0;
-    if (d.txCount === 0)         { txPts = 12; components.push({ label:'TX Volume',  pts:12, note:'Zero transactions — dormant or brand new' }); }
-    else if (d.txCount >= 200)   { txPts = 14; components.push({ label:'TX Volume',  pts:14, note:`200+ txns — very high activity (capped at 200 in query)` }); }
-    else if (d.txCount >= 100)   { txPts = 10; components.push({ label:'TX Volume',  pts:10, note:`${d.txCount} transactions — high activity` }); }
-    else if (d.txCount >= 20)    { txPts = 4;  components.push({ label:'TX Volume',  pts:4,  note:`${d.txCount} transactions — moderate activity` }); }
-    else                         { txPts = 2;  components.push({ label:'TX Volume',  pts:2,  note:`${d.txCount} transactions — low activity` }); }
-    total += txPts;
+    // ── 2. TRANSACTION VOLUME ──
+    // Null-safe: coerce null/undefined to 0
+    const txCount = (d.txCount !== null && d.txCount !== undefined) ? Number(d.txCount) : 0;
+    if      (txCount === 0)   { total += 10; components.push({ label:'TX Volume', pts:10, note:'Zero transactions recorded' }); }
+    else if (txCount >= 200)  { total += 13; components.push({ label:'TX Volume', pts:13, note:'200+ transactions — very high activity' }); }
+    else if (txCount >= 100)  { total += 9;  components.push({ label:'TX Volume', pts:9,  note:`${txCount} transactions — high activity` }); }
+    else if (txCount >= 50)   { total += 6;  components.push({ label:'TX Volume', pts:6,  note:`${txCount} transactions — moderate-high activity` }); }
+    else if (txCount >= 10)   { total += 3;  components.push({ label:'TX Volume', pts:3,  note:`${txCount} transactions — moderate activity` }); }
+    else                      { total += 1;  components.push({ label:'TX Volume', pts:1,  note:`${txCount} transactions — low activity` }); }
 
-    // Balance concentration risk
-    let balPts = 0;
-    if (d.balance !== null) {
-      if (d.balance > 1000)      { balPts = 15; components.push({ label:'ETH Balance', pts:15, note:`${d.balance.toFixed(2)} ETH — whale wallet, high-value target` }); }
-      else if (d.balance > 100)  { balPts = 10; components.push({ label:'ETH Balance', pts:10, note:`${d.balance.toFixed(2)} ETH — significant holdings` }); }
-      else if (d.balance > 10)   { balPts = 6;  components.push({ label:'ETH Balance', pts:6,  note:`${d.balance.toFixed(4)} ETH — moderate holdings` }); }
-      else if (d.balance < 0.001){ balPts = 6;  components.push({ label:'ETH Balance', pts:6,  note:'Dust balance — possible burned or abandoned wallet' }); }
-      else                       { balPts = 2;  components.push({ label:'ETH Balance', pts:2,  note:`${d.balance.toFixed(4)} ETH` }); }
-    }
-    total += balPts;
+    // ── 3. ETH BALANCE ──
+    // Null-safe: only score if balance is a real positive number
+    const bal = (d.balance !== null && d.balance !== undefined && !isNaN(d.balance)) ? Number(d.balance) : null;
+    if (bal === null) {
+      components.push({ label:'ETH Balance', pts:0, note:'Balance data unavailable' });
+    } else if (bal > 100000) { total += 20; components.push({ label:'ETH Balance', pts:20, note:`${bal.toFixed(0)} ETH — extremely large contract/exchange` }); }
+    else if (bal > 10000)    { total += 18; components.push({ label:'ETH Balance', pts:18, note:`${bal.toFixed(0)} ETH — major protocol or exchange` }); }
+    else if (bal > 1000)     { total += 15; components.push({ label:'ETH Balance', pts:15, note:`${bal.toFixed(2)} ETH — whale wallet` }); }
+    else if (bal > 100)      { total += 10; components.push({ label:'ETH Balance', pts:10, note:`${bal.toFixed(2)} ETH — significant holdings` }); }
+    else if (bal > 10)       { total += 6;  components.push({ label:'ETH Balance', pts:6,  note:`${bal.toFixed(4)} ETH — moderate holdings` }); }
+    else if (bal > 0.001)    { total += 2;  components.push({ label:'ETH Balance', pts:2,  note:`${bal.toFixed(4)} ETH — small holdings` }); }
+    else                     { total += 5;  components.push({ label:'ETH Balance', pts:5,  note:'Dust balance — near-empty wallet' }); }
 
-    // Token exposure risk
-    let tokPts = 0;
-    if (d.tokens.length > 10)    { tokPts = 12; components.push({ label:'Token Exposure', pts:12, note:`10+ different tokens — high DeFi surface area` }); }
-    else if (d.tokens.length > 5){ tokPts = 7;  components.push({ label:'Token Exposure', pts:7,  note:`${d.tokens.length} different tokens — moderate DeFi exposure` }); }
-    else if (d.tokens.length > 0){ tokPts = 3;  components.push({ label:'Token Exposure', pts:3,  note:`${d.tokens.length} token(s) — limited exposure` }); }
-    total += tokPts;
+    // ── 4. TOKEN EXPOSURE ──
+    const tokLen = Array.isArray(d.tokens) ? d.tokens.length : 0;
+    if      (tokLen > 15) { total += 14; components.push({ label:'Token Exposure', pts:14, note:`${tokLen}+ token contracts — very high DeFi exposure` }); }
+    else if (tokLen > 10) { total += 10; components.push({ label:'Token Exposure', pts:10, note:`${tokLen} token contracts — high DeFi exposure` }); }
+    else if (tokLen > 5)  { total += 6;  components.push({ label:'Token Exposure', pts:6,  note:`${tokLen} token contracts — moderate exposure` }); }
+    else if (tokLen > 0)  { total += 2;  components.push({ label:'Token Exposure', pts:2,  note:`${tokLen} token contract(s)` }); }
+    else                  { total += 0;  components.push({ label:'Token Exposure', pts:0,  note:'No token transfers detected' }); }
 
-    // Contract risk
-    if (d.isContract) {
-      const cPts = 12;
-      components.push({ label:'Contract Address', pts:cPts, note:'Smart contract — higher attack surface than EOA' });
-      total += cPts;
+    // ── 5. CONTRACT CLASSIFICATION ──
+    if (d.isContract === true) {
+      total += 10;
+      components.push({ label:'Contract Address', pts:10, note:'Smart contract — higher complexity than EOA' });
     }
 
   } else {
-    // Demo mode: deterministic from address hash
-    function h(s) { let v=5381; for(let i=0;i<s.length;i++) v=(((v<<5)+v)^s.charCodeAt(i))>>>0; return v; }
-    const seed = h(addr.toLowerCase());
-    const demoPts = (seed % 51) + 5;
-    components.push({ label:'Pattern Score (demo)', pts:demoPts, note:'Simulated — connect Etherscan for real data' });
-    total += demoPts;
+    // Demo mode — deterministic per address
+    const seed  = djb2(addr.toLowerCase());
+    const seed2 = djb2(addr.toLowerCase() + 'salt');
+    const pts   = (seed % 45) + 10 + (seed2 % 20);
+    components.push({ label:'Pattern Score (demo)', pts:pts, note:'Simulated data — connect Etherscan for real analysis' });
+    total += pts;
   }
 
   total = Math.max(0, Math.min(100, Math.round(total)));
-  const level = total <= 30 ? 'low' : total <= 65 ? 'medium' : 'high';
+  const level = total <= 30 ? 'low' : total <= 60 ? 'medium' : 'high';
 
-  // Individual vector scores
+  // ── VECTOR SCORES (null-safe) ──
+  const safeBalance = (d.balance !== null && d.balance !== undefined && !isNaN(d.balance)) ? Number(d.balance) : 0;
+  const safeTxCount = (d.txCount !== null && d.txCount !== undefined) ? Number(d.txCount) : 0;
+  const safeTokens  = Array.isArray(d.tokens) ? d.tokens.length : 0;
+  const safeAge     = (d.firstTs && d.firstTs > 0) ? Math.max(0,(Date.now()/1000 - d.firstTs)/86400) : null;
+
   const vectors = d.live ? [
-    { name:'On-Chain Age',       icon:'⧖', score: Math.min(100, components.find(c=>c.label==='Wallet Age')?.pts * 5 || 0) },
-    { name:'Transaction Pattern',icon:'↔', score: Math.min(100, (d.txCount||0) > 100 ? 80 : (d.txCount||0) * 0.8) },
-    { name:'Value Concentration',icon:'◈', score: Math.min(100, d.balance > 100 ? 70 : d.balance > 10 ? 40 : 15) },
-    { name:'DeFi Exposure',      icon:'⬡', score: Math.min(100, d.tokens.length * 10) },
+    {
+      name: 'On-Chain Age', icon: '⧖',
+      score: safeAge === null ? 80 :
+             safeAge > 730 ? 5 :
+             safeAge > 365 ? 15 :
+             safeAge > 180 ? 30 :
+             safeAge > 30  ? 50 :
+             safeAge > 7   ? 65 : 85
+    },
+    {
+      name: 'Transaction Pattern', icon: '↔',
+      score: safeTxCount === 0    ? 60 :
+             safeTxCount >= 200   ? 85 :
+             safeTxCount >= 100   ? 70 :
+             safeTxCount >= 50    ? 55 :
+             safeTxCount >= 10    ? 35 : 20
+    },
+    {
+      name: 'Value Concentration', icon: '◈',
+      score: safeBalance === 0      ? 20 :
+             safeBalance > 100000   ? 95 :
+             safeBalance > 10000    ? 85 :
+             safeBalance > 1000     ? 72 :
+             safeBalance > 100      ? 55 :
+             safeBalance > 10       ? 38 : 18
+    },
+    {
+      name: 'DeFi Exposure', icon: '⬡',
+      score: Math.min(95, safeTokens * 7)
+    },
   ] : [
-    { name:'Activity Pattern',   icon:'↔', score: 30 + Math.random()*40 | 0 },
-    { name:'Counterparty Risk',  icon:'⊕', score: 20 + Math.random()*50 | 0 },
-    { name:'Value Metrics',      icon:'◈', score: 10 + Math.random()*60 | 0 },
-    { name:'Protocol Exposure',  icon:'⬡', score: 20 + Math.random()*40 | 0 },
+    { name:'Activity Pattern',   icon:'↔', score: 30 + (djb2(addr+'a')%40) },
+    { name:'Counterparty Risk',  icon:'⊕', score: 20 + (djb2(addr+'b')%50) },
+    { name:'Value Metrics',      icon:'◈', score: 10 + (djb2(addr+'c')%60) },
+    { name:'Protocol Exposure',  icon:'⬡', score: 20 + (djb2(addr+'d')%40) },
   ];
 
-  vectors.forEach(v => { v.level = v.score <= 33 ? 'low' : v.score <= 66 ? 'medium' : 'high'; v.label = v.score <= 33 ? 'Low' : v.score <= 66 ? 'Medium' : 'High'; });
+  vectors.forEach(v => {
+    v.level = v.score <= 33 ? 'low' : v.score <= 66 ? 'medium' : 'high';
+    v.label = v.score <= 33 ? 'Low'  : v.score <= 66 ? 'Medium'  : 'High';
+  });
 
-  const hasFlag = total > 65 || (d.live && d.isContract) || total > 50 && d.tokens.length > 8;
+  const hasFlag = total > 60 || (d.live && d.isContract && total > 45) || safeTokens > 8;
 
   return { score:total, level, components, vectors, hasFlag };
 }
@@ -1043,7 +1114,7 @@ Rules:
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 500,
         messages: [{ role:'user', content:prompt }]
       })

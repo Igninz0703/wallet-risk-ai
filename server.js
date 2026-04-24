@@ -64,7 +64,7 @@ const server = http.createServer((req, res) => {
       try {
         const payload  = JSON.parse(body);
         const postData = JSON.stringify({
-          model:      'claude-sonnet-4-20250514',
+          model:      'claude-sonnet-4-6',
           max_tokens: 500,
           messages:   payload.messages || [{ role:'user', content: payload.prompt || 'Hello' }]
         });
