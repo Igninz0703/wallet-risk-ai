@@ -1396,60 +1396,62 @@ async function analyze() {
   btn.disabled = true; btn.textContent = 'Analyzing…';
   document.getElementById('results').classList.remove('show');
 
-  const useLive = !!esKey;
-  const steps = initLoader(useLive);
+  const steps = initLoader(!!esKey);
 
   try {
-    let data;
+    let data, sc, aiAnalysis;
     await animatePctTo(10, 400);
+    setLoaderStep('resolve');
 
-    if (useLive) {
-      setLoaderStep('resolve');
-      await animatePctTo(18, 400);
-      doneLoaderStep('resolve');
-
+    // Try backend first — it handles Etherscan + Claude server-side (no CORS, no rate limits)
+    let backendOk = false;
+    try {
+      await animatePctTo(20, 300);
       setLoaderStep('balance');
-      await animatePctTo(30, 300);
+      const resp = await fetch('http://localhost:3000/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: v.addr }),
+        signal: AbortSignal.timeout(35000)
+      });
+      if (resp.ok) {
+        const bd = await resp.json();
+        if (bd.walletData && bd.scoring) {
+          data       = bd.walletData;
+          sc         = bd.scoring;
+          aiAnalysis = bd.aiText;
+          backendOk  = true;
+          await animatePctTo(88, 1200);
+          ['resolve','balance','txs','tokens','score','ai'].forEach(s => doneLoaderStep(s));
+        }
+      }
+    } catch(e) {
+      console.log('Backend fetch failed, using client-side:', e.message);
+    }
 
+    // Fallback: client-side fetch
+    if (!backendOk) {
       setLoaderStep('txs');
-      // Fetch real data
-      try {
-        data = await fetchOnChain(v.addr);
-      } catch(e) {
+      if (esKey) {
+        try { data = await fetchOnChain(v.addr); }
+        catch(e) {
+          data = { live:false, isContract:false, balance:null, txCount:null, firstTs:null, tokens:[], ethPrice:2340 };
+          setStatus('es','warn','Fetch failed — demo data');
+        }
+      } else {
         data = { live:false, isContract:false, balance:null, txCount:null, firstTs:null, tokens:[], ethPrice:2340 };
-        setStatus('es','warn','Fetch failed — using demo data');
       }
-      doneLoaderStep('balance');
-      doneLoaderStep('txs');
-      await animatePctTo(55, 400);
-      doneLoaderStep('tokens');
-    } else {
-      setLoaderStep('resolve');
-      await animatePctTo(25, 800);
-      doneLoaderStep('resolve');
-      data = { live:false, isContract:false, balance:null, txCount:null, firstTs:null, tokens:[], ethPrice:2340 };
+      await animatePctTo(60, 400); doneLoaderStep('txs'); doneLoaderStep('tokens');
+      setLoaderStep('score');
+      sc = scoreWallet(v.addr, data);
+      await animatePctTo(75, 300); doneLoaderStep('score');
+      setLoaderStep('ai');
+      if (aiKey) { try { aiAnalysis = await getAIAnalysis(v.addr, data, sc); } catch(e) { setStatus('ai','err','AI failed — using template'); } }
+      if (!aiAnalysis) aiAnalysis = templateAnalysis(v.addr, data, sc);
+      await animatePctTo(88, 300); doneLoaderStep('ai');
     }
 
-    // Score
-    setLoaderStep('score');
-    const sc = scoreWallet(v.addr, data);
-    await animatePctTo(70, 400);
-    doneLoaderStep('score');
-
-    // AI analysis
-    setLoaderStep('ai');
-    let aiAnalysis = null;
-    if (aiKey) {
-      try {
-        aiAnalysis = await getAIAnalysis(v.addr, data, sc);
-      } catch(e) {
-        console.warn('Claude API error:', e);
-        setStatus('ai','err','AI analysis failed — using template');
-      }
-    }
     if (!aiAnalysis) aiAnalysis = templateAnalysis(v.addr, data, sc);
-    await animatePctTo(88, 300);
-    doneLoaderStep('ai');
 
     // Render
     setLoaderStep('render');
