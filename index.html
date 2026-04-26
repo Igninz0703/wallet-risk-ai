@@ -480,12 +480,153 @@ body {
 /* Streaming text */
 .ai-text {
   font-size: 14px; line-height: 1.85; color: var(--text);
-  white-space: pre-wrap;
 }
 .ai-text strong { color: var(--white); font-weight: 600; }
 .ai-text .hl-low    { color: var(--low); font-weight: 600; }
 .ai-text .hl-med    { color: var(--med); font-weight: 600; }
 .ai-text .hl-high   { color: var(--high); font-weight: 600; }
+.ai-text .compliance-ok   { color: var(--low);  font-weight: 700; }
+.ai-text .compliance-warn { color: var(--med);  font-weight: 700; }
+.ai-text .compliance-high { color: var(--high); font-weight: 700; }
+
+/* ── Evidence Transactions Panel ── */
+.evidence-panel {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 20px 22px; margin-bottom: 16px;
+}
+.evidence-title {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--dim); margin-bottom: 14px;
+}
+.evidence-tx {
+  display: grid;
+  grid-template-columns: 80px 44px 1fr 100px 90px;
+  align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid rgba(28,36,56,.7);
+  font-family: var(--mono); font-size: 11px;
+}
+.evidence-tx:last-child { border-bottom: none; }
+.ev-date  { color: var(--dim); }
+.ev-dir   {
+  font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px;
+  text-align: center; letter-spacing: 1px;
+}
+.ev-dir.out { background: rgba(240,56,88,.12); color: var(--high); border: 1px solid rgba(240,56,88,.25); }
+.ev-dir.in  { background: rgba(0,232,162,.08); color: var(--low);  border: 1px solid rgba(0,232,162,.2); }
+.ev-peer  { color: var(--blue2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-value { color: var(--white); text-align: right; }
+.ev-flag  {
+  font-size: 9px; padding: 2px 7px; border-radius: 4px;
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ev-flag.flagged {
+  background: rgba(240,56,88,.12); color: var(--high);
+  border: 1px solid rgba(240,56,88,.3);
+  animation: sanctionPulse 3s infinite;
+}
+.ev-flag.hop1 {
+  background: rgba(240,176,40,.1); color: var(--med);
+  border: 1px solid rgba(240,176,40,.25);
+}
+.ev-flag.clean {
+  background: rgba(28,36,56,.5); color: var(--dim);
+  border: 1px solid var(--line);
+}
+.evidence-empty { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+
+/* Sanctions banner */
+.sanctions-banner {
+  display: none;
+  background: rgba(255,56,88,.06);
+  border: 1px solid rgba(255,56,88,.4);
+  border-left: 4px solid var(--high);
+  border-radius: 14px;
+  padding: 18px 22px;
+  margin-bottom: 16px;
+  animation: sanctionPulse 3s infinite;
+}
+.sanctions-banner.show { display: block; }
+.sanctions-title {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--high);
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.sanctions-item {
+  font-size: 13px; color: #ffaabb; padding: 5px 0;
+  border-bottom: 1px solid rgba(255,56,88,.15);
+  display: flex; align-items: center; gap: 8px;
+}
+.sanctions-item:last-child { border-bottom: none; }
+.sanctions-type {
+  font-family: var(--mono); font-size: 9px; padding: 2px 8px;
+  border-radius: 4px; background: rgba(255,56,88,.15); color: var(--high);
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* PDF Button */
+.pdf-btn {
+  display: none;
+  align-items: center; gap: 8px;
+  background: var(--paper); border: 1px solid var(--line2);
+  border-radius: 10px; padding: 10px 18px;
+  color: var(--text-dim); font-family: var(--mono); font-size: 11px;
+  cursor: pointer; transition: all .2s; margin-top: 20px;
+}
+.pdf-btn:hover { border-color: var(--blue2); color: var(--white); }
+.pdf-btn.show { display: flex; }
+
+@keyframes sanctionPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,56,88,.0); }
+  50%      { box-shadow: 0 0 20px rgba(255,56,88,.12); }
+}
+.ai-text .compliance-ok   { color: var(--low);  font-weight: 700; }
+.ai-text .compliance-warn { color: var(--med);  font-weight: 700; }
+.ai-text .compliance-high { color: var(--high); font-weight: 700; }
+
+/* ── Evidence Transactions Panel ── */
+.evidence-panel {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 20px 22px; margin-bottom: 16px;
+}
+.evidence-title {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--dim); margin-bottom: 14px;
+}
+.evidence-tx {
+  display: grid;
+  grid-template-columns: 80px 44px 1fr 100px 90px;
+  align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid rgba(28,36,56,.7);
+  font-family: var(--mono); font-size: 11px;
+}
+.evidence-tx:last-child { border-bottom: none; }
+.ev-date  { color: var(--dim); }
+.ev-dir   {
+  font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px;
+  text-align: center; letter-spacing: 1px;
+}
+.ev-dir.out { background: rgba(240,56,88,.12); color: var(--high); border: 1px solid rgba(240,56,88,.25); }
+.ev-dir.in  { background: rgba(0,232,162,.08); color: var(--low);  border: 1px solid rgba(0,232,162,.2); }
+.ev-peer  { color: var(--blue2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-value { color: var(--white); text-align: right; }
+.ev-flag  {
+  font-size: 9px; padding: 2px 7px; border-radius: 4px;
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ev-flag.flagged {
+  background: rgba(240,56,88,.12); color: var(--high);
+  border: 1px solid rgba(240,56,88,.3);
+  animation: sanctionPulse 3s infinite;
+}
+.ev-flag.hop1 {
+  background: rgba(240,176,40,.1); color: var(--med);
+  border: 1px solid rgba(240,176,40,.25);
+}
+.ev-flag.clean {
+  background: rgba(28,36,56,.5); color: var(--dim);
+  border: 1px solid var(--line);
+}
+.evidence-empty { font-family: var(--mono); font-size: 11px; color: var(--dim); }
 
 .ai-cursor { display: inline-block; width: 2px; height: 16px; background: var(--blue2); animation: blink .8s infinite; vertical-align: text-bottom; margin-left: 2px; }
 
@@ -605,7 +746,7 @@ body {
       <div class="status-dot off" id="esDot"></div>
       <div class="status-label" id="esLbl">Not connected — using demo data</div>
       <div style="flex:1"></div>
-      <input class="cfg-input" type="text" id="esKey" placeholder="Etherscan API key" style="max-width:340px" maxlength="64" autocomplete="off" spellcheck="false"/>
+      <input class="cfg-input" type="password" id="esKey" placeholder="Etherscan API key" style="max-width:340px" maxlength="64" autocomplete="off" spellcheck="false"/>
       <button class="cfg-btn" onclick="saveEs()">Connect</button>
       <button class="cfg-btn" onclick="clearEs()">Clear</button>
     </div>
@@ -614,7 +755,7 @@ body {
       <div class="status-dot off" id="aiDot"></div>
       <div class="status-label" id="aiLbl">Not connected — insights will be template-based</div>
       <div style="flex:1"></div>
-      <input class="cfg-input" type="text" id="aiKey" placeholder="sk-ant-api03-..." style="max-width:340px" maxlength="250" autocomplete="off" spellcheck="false"/>
+      <input class="cfg-input" type="password" id="aiKey" placeholder="sk-ant-api03-..." style="max-width:340px" maxlength="250" autocomplete="off" spellcheck="false"/>
       <button class="cfg-btn" onclick="saveAi()">Connect</button>
       <button class="cfg-btn" onclick="clearAi()">Clear</button>
     </div>
@@ -660,6 +801,12 @@ body {
 
   <!-- RESULTS -->
   <div id="results">
+
+    <!-- Sanctions Banner -->
+    <div class="sanctions-banner" id="sanctionsBanner">
+      <div class="sanctions-title">⚠ SANCTIONS / HIGH-RISK FLAGS DETECTED</div>
+      <div id="sanctionsBody"></div>
+    </div>
 
     <div class="addr-bar">
       <div class="addr-live"></div>
@@ -726,6 +873,12 @@ body {
     </div>
 
     <!-- AI ANALYSIS -->
+    <!-- EVIDENCE TRANSACTIONS -->
+    <div class="evidence-panel" id="evidencePanel" style="display:none">
+      <div class="evidence-title">// Key Transactions — Evidence</div>
+      <div id="evidenceBody"><div class="evidence-empty">No transactions to display.</div></div>
+    </div>
+
     <div class="ai-card">
       <div class="ai-header">
         <div class="ai-badge">AI Analysis</div>
@@ -768,6 +921,10 @@ body {
         <span>●</span><span>—</span>
       </div>
     </div>
+
+      <button class="pdf-btn" id="pdfBtn" onclick="exportPDF()">
+        <span style="font-size:16px">↓</span> Download PDF Report
+      </button>
 
   </div><!-- /results -->
 
@@ -1247,17 +1404,32 @@ function fmtAge(ts) {
 /* ═══════════════════════════════════════════
    TYPE-WRITER EFFECT for AI text
 ═══════════════════════════════════════════ */
+function renderAiText(raw) {
+  if (!raw) return '';
+  const cleaned = raw.replace(/^[#*-]{1,4} /gm,'').trim();
+  const paras = cleaned.split(/\n{2,}/).map(p => p.replace(/\n/g,' ').trim()).filter(p => p.length > 10);
+  return paras.map(function(p) {
+    var html = p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/(No compliance action required\.?)/gi,'<span class="compliance-ok">$1</span>');
+    html = html.replace(/(Enhanced due diligence[^.]*\.)/gi,'<span class="compliance-warn">$1</span>');
+    html = html.replace(/(High-risk activity detected[^.]*\.)/gi,'<span class="compliance-high">$1</span>');
+    return '<p style="margin-bottom:14px;color:#a8c0e0">' + html + '</p>';
+  }).join('');
+}
+
 async function typeWrite(text) {
-  const el = document.getElementById('aiContent');
-  const cursor = document.getElementById('aiCursor');
+  var el     = document.getElementById('aiContent');
+  var cursor = document.getElementById('aiCursor');
   cursor.style.display = 'inline-block';
   el.textContent = '';
-  const delay = ms => new Promise(r => setTimeout(r, ms));
-  for (let i = 0; i < text.length; i++) {
-    el.textContent += text[i];
-    if (i % 3 === 0) await delay(8);
+  var plain   = text.replace(/\*\*(.+?)\*\*/g, '$1');
+  var delayFn = function(ms) { return new Promise(function(r){ setTimeout(r,ms); }); };
+  for (var i = 0; i < plain.length; i++) {
+    el.textContent += plain[i];
+    if (i % 5 === 0) await delayFn(5);
   }
   cursor.style.display = 'none';
+  el.innerHTML = renderAiText(text);
 }
 
 /* ═══════════════════════════════════════════
@@ -1273,11 +1445,14 @@ function render(addr, d, sc, aiText) {
   st.textContent = d.live ? 'LIVE' : 'DEMO';
   st.className = 'tag ' + (d.live ? 'tag-live' : 'tag-demo');
 
-  // Stats
+  // Stats — Fix #2: warn if ETH price is stale/fallback
   const bal = fmtEth(d.balance, d.ethPrice);
   const age = fmtAge(d.firstTs);
+  const balSub = d.ethPriceReal === false
+    ? (bal.sub ? bal.sub + ' (est.)' : 'price estimate')
+    : bal.sub;
   [
-    { v:bal.main, s:bal.sub, c:sc.level },
+    { v:bal.main, s:balSub, c:sc.level },
     { v:d.txCount !== null ? (d.txCount >= 200 ? '200+' : String(d.txCount)) : '—', s:d.firstTs?`since ${new Date(d.firstTs*1000).toLocaleDateString('en-US',{month:'short',year:'numeric'})}` : 'no history', c:sc.level },
     { v:age.main, s:age.sub, c:sc.level },
     { v:String(d.tokens.length||0), s:'token contracts', c:sc.level },
@@ -1287,12 +1462,16 @@ function render(addr, d, sc, aiText) {
     document.getElementById('sc'+i).className = 'stat-cell risk-'+x.c;
   });
 
-  // Score card
+  // Score card — ensure sanctions override is reflected in the visual level
+  var displayLevel = sc.level;
+  var hasSanctions = d.sanctionFlags && d.sanctionFlags.length > 0;
+  if (hasSanctions) displayLevel = 'high'; // sanctions always render as high risk visually
+
   const card = document.getElementById('scoreCard');
-  card.className = 'score-card ' + sc.level;
+  card.className = 'score-card ' + displayLevel;
   document.getElementById('ringNum').textContent = sc.score;
-  document.getElementById('scoreBadge').textContent = { low:'✓ Low Risk', medium:'⚡ Medium Risk', high:'⚠ High Risk' }[sc.level];
-  setRing(sc.score, sc.level);
+  document.getElementById('scoreBadge').textContent = { low:'✓ Low Risk', medium:'⚡ Medium Risk', high:'⚠ High Risk' }[displayLevel];
+  setRing(sc.score, displayLevel);
 
   // Formula rows (transparent scoring)
   const fRows = document.getElementById('formulaRows');
@@ -1327,10 +1506,69 @@ function render(addr, d, sc, aiText) {
   document.getElementById('scoreReason').innerHTML =
     sc.components.map(c => `<strong style="color:var(--white)">${c.label} (+${c.pts}):</strong> ${c.note}`).join('<br/>');
 
-  // AI text (will be set by caller via typeWrite)
-  document.getElementById('aiModel').textContent = aiKey
-    ? 'claude-sonnet-4-6 · real-time analysis'
-    : 'template engine · connect Claude API for AI analysis';
+  // ── Evidence Transactions Visualization ──
+  var evPanel = document.getElementById('evidencePanel');
+  var evBody  = document.getElementById('evidenceBody');
+  if (evPanel && evBody) {
+    var evTxs = d.evidenceTxs || [];
+    if (evTxs.length > 0) {
+      evPanel.style.display = 'block';
+      evBody.innerHTML = evTxs.map(function(tx) {
+        var dirClass  = tx.dir === 'OUT' ? 'out' : 'in';
+        var shortPeer = tx.peer ? (tx.peer.slice(0,8) + '...' + tx.peer.slice(-4)) : '—';
+        var valStr    = tx.value > 0 ? tx.value.toFixed(4) + ' ETH' : '0 ETH';
+        var flagHtml  = '';
+        if (tx.flagged) {
+          var shortLabel = tx.label ? tx.label.split('(')[0].trim() : 'SANCTIONED';
+          if (shortLabel.length > 18) shortLabel = shortLabel.slice(0,16) + '…';
+          flagHtml = '<span class="ev-flag flagged" title="' + (tx.label||'') + '">⚠ ' + shortLabel + '</span>';
+        } else {
+          flagHtml = '<span class="ev-flag clean">✓ clean</span>';
+        }
+        var hashLink = tx.hash
+          ? '<a href="https://etherscan.io/tx/' + tx.hash + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">' + shortPeer + '</a>'
+          : shortPeer;
+        return '<div class="evidence-tx">' +
+          '<span class="ev-date">'  + tx.date   + '</span>' +
+          '<span class="ev-dir '    + dirClass  + '">' + tx.dir + '</span>' +
+          '<span class="ev-peer">'  + hashLink  + '</span>' +
+          '<span class="ev-value">' + valStr    + '</span>' +
+          flagHtml + '</div>';
+      }).join('');
+    } else {
+      evPanel.style.display = 'none';
+    }
+  }
+
+  // Also render 1-hop indirect flags in the sanctions banner
+  var indirectFlags = (d.sanctionFlags || []).filter(function(f){ return f.type === 'INDIRECT_EXPOSURE'; });
+  if (indirectFlags.length > 0) {
+    var sBannerEl = document.getElementById('sanctionsBanner');
+    var sBodyEl   = document.getElementById('sanctionsBody');
+    if (sBannerEl && sBodyEl) {
+      sBannerEl.classList.add('show');
+      var existingHtml = sBodyEl.innerHTML;
+      var hopHtml = indirectFlags.map(function(f) {
+        return '<div class="sanctions-item">' +
+          '<span class="sanctions-type" style="background:rgba(240,176,40,.15);color:var(--med);border-color:rgba(240,176,40,.3)">1-HOP</span>' +
+          f.label + ' — ' + f.address.slice(0,16) + '...' +
+          '</div>';
+      }).join('');
+      sBodyEl.innerHTML = existingHtml + hopHtml;
+    }
+  }
+
+  // AI text — Fix #3: show warning if Claude was unavailable
+  var aiModelEl = document.getElementById('aiModel');
+  if (d.aiWarning) {
+    aiModelEl.textContent = '⚠ AI unavailable — showing template analysis';
+    aiModelEl.style.color = 'var(--med)';
+  } else {
+    aiModelEl.textContent = aiKey
+      ? 'claude-sonnet-4-6 · real-time analysis'
+      : 'template engine · connect Claude API for AI analysis';
+    aiModelEl.style.color = '';
+  }
 
   // Flag
   const flags = {
@@ -1372,6 +1610,22 @@ function render(addr, d, sc, aiText) {
     : `<span style="color:var(--med)">●</span><span>Demo mode — connect keys for live data</span>`;
 
   // Show
+  // Sanctions banner
+  var sBanner = document.getElementById('sanctionsBanner');
+  var sBody   = document.getElementById('sanctionsBody');
+  if (d.sanctionFlags && d.sanctionFlags.length > 0) {
+    sBanner.classList.add('show');
+    sBody.innerHTML = d.sanctionFlags.map(function(f) {
+      return '<div class="sanctions-item"><span class="sanctions-type">'+f.type.replace('_',' ')+'</span>'+f.label+' — '+f.address.slice(0,16)+'...</div>';
+    }).join('');
+  } else {
+    sBanner.classList.remove('show');
+    sBody.innerHTML = '';
+  }
+
+  // Show PDF button
+  document.getElementById('pdfBtn').classList.add('show');
+
   document.getElementById('results').classList.add('show');
 }
 
@@ -1420,6 +1674,13 @@ async function analyze() {
           data       = bd.walletData;
           sc         = bd.scoring;
           aiAnalysis = bd.aiText;
+          if (bd.sanctionFlags) data.sanctionFlags = bd.sanctionFlags;
+          if (bd.evidenceTxs)   data.evidenceTxs   = bd.evidenceTxs;
+          // Fix #3: if Claude failed, use template but mark it
+          if (bd.aiError || !aiAnalysis) {
+            data.aiWarning = true;
+            aiAnalysis = null; // will fall through to templateAnalysis
+          }
           backendOk  = true;
           await animatePctTo(88, 1200);
           ['resolve','balance','txs','tokens','score','ai'].forEach(s => doneLoaderStep(s));
@@ -1475,6 +1736,188 @@ async function analyze() {
 }
 
 /* ── Init ── */
+// ── PDF EXPORT ──
+// Uses the browser's print system with a custom print stylesheet
+// No external libraries needed — works in all modern browsers
+function exportPDF() {
+  // Collect all data from the DOM
+  var wallet    = document.getElementById('dispAddr').textContent.trim();
+  var scoreRaw  = document.getElementById('ringNum').textContent.trim();
+  var scoreNum  = parseInt(scoreRaw, 10) || 0;
+  var lvlEl     = document.getElementById('scoreLvl');
+  var level     = lvlEl ? lvlEl.textContent.trim() : '';
+  var aiHtml    = document.getElementById('aiContent').innerHTML;
+  var ts        = new Date().toISOString().slice(0,19).replace('T',' ') + ' UTC';
+  var reportId  = '';
+  var ridBadge  = document.getElementById('reportIdBadge');
+  if (ridBadge) reportId = ridBadge.textContent.trim();
+
+  // Score components
+  var compsEl   = document.getElementById('formulaRows');
+  var compsHtml = compsEl ? compsEl.innerHTML : '';
+
+  // Sanctions
+  var sBanner   = document.getElementById('sanctionsBanner');
+  var hasFlags  = sBanner && sBanner.classList.contains('show');
+  var flagsHtml = hasFlags ? document.getElementById('sanctionsBody').innerHTML : '';
+
+  // Stats helper
+  var stat = function(id) {
+    var el = document.getElementById(id);
+    return el ? el.textContent.trim() : '—';
+  };
+
+  // Score color based on numeric value
+  var scoreColor = scoreNum <= 30 ? '#00a060' : scoreNum <= 60 ? '#b07800' : '#c02040';
+  var levelColor = scoreColor;
+
+  // Build the full HTML document for the PDF
+  var html = [
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">',
+    '<title>ChainGuard Report ' + reportId + '</title>',
+    '<style>',
+    '* { box-sizing: border-box; }',
+    'body { font-family: Arial, Helvetica, sans-serif; color: #1a2030; margin: 0; padding: 0; background: #fff; font-size: 13px; }',
+    '.page { max-width: 760px; margin: 0 auto; padding: 40px 44px 60px; }',
+    '.hdr { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #d8e4f0; padding-bottom: 20px; margin-bottom: 28px; }',
+    '.brand { font-size: 24px; font-weight: 700; color: #1a3a6a; letter-spacing: -0.5px; }',
+    '.brand em { font-style: normal; color: #2060ff; }',
+    '.brand-sub { font-size: 10px; color: #8090a8; font-family: monospace; letter-spacing: 1.5px; margin-top: 3px; text-transform: uppercase; }',
+    '.hdr-right { text-align: right; }',
+    '.hdr-date { font-size: 11px; color: #6080a0; font-family: monospace; }',
+    '.hdr-rid { font-size: 10px; color: #9090b0; font-family: monospace; margin-top: 2px; }',
+    '.sec { margin-bottom: 22px; }',
+    '.sec-title { font-size: 8px; letter-spacing: 2.5px; text-transform: uppercase; color: #8090a8; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #e8eef8; font-family: monospace; font-weight: 400; }',
+    '.addr-box { background: #f4f8ff; border: 1px solid #c8d8f0; border-radius: 6px; padding: 11px 15px; font-family: monospace; font-size: 12px; color: #2060ff; word-break: break-all; letter-spacing: 0.3px; }',
+    '.score-row { display: flex; align-items: center; gap: 24px; margin: 14px 0 10px; }',
+    '.score-num { font-size: 56px; font-weight: 700; color: ' + scoreColor + '; line-height: 1; font-family: monospace; }',
+    '.score-info .level { font-size: 15px; font-weight: 700; color: ' + levelColor + '; }',
+    '.score-info .denom { font-size: 12px; color: #8090a8; margin-top: 2px; }',
+    '.comp-table { width: 100%; border-collapse: collapse; margin-top: 8px; }',
+    '.comp-table tr { border-bottom: 1px solid #f0f4fa; }',
+    '.comp-table td { padding: 5px 4px; font-size: 11px; }',
+    '.comp-key { color: #4060a0; }',
+    '.comp-val { color: #c04020; font-weight: 600; font-family: monospace; text-align: right; }',
+    '.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }',
+    '.stat-cell { background: #f8faff; border: 1px solid #dce8f8; border-radius: 5px; padding: 10px 13px; }',
+    '.stat-lbl { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; color: #8090a8; font-family: monospace; margin-bottom: 4px; }',
+    '.stat-val { font-size: 17px; font-weight: 600; color: #1a2030; font-family: monospace; line-height: 1; }',
+    '.stat-sub { font-size: 10px; color: #8090a8; font-family: monospace; margin-top: 2px; }',
+    '.ai-box { background: #f6f9ff; border-left: 3px solid #2060ff; padding: 15px 18px; border-radius: 0 6px 6px 0; }',
+    '.ai-box p { margin: 0 0 11px; font-size: 12.5px; line-height: 1.75; color: #253045; }',
+    '.ai-box p:last-child { margin-bottom: 0; }',
+    '.compliance-ok   { color: #007a40; font-weight: 700; }',
+    '.compliance-warn { color: #906000; font-weight: 700; }',
+    '.compliance-high { color: #b01830; font-weight: 700; }',
+    '.sanction-box { background: #fff4f6; border: 2px solid #d03050; border-radius: 6px; padding: 13px 16px; margin-bottom: 18px; }',
+    '.sanction-title { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #b01830; font-weight: 700; margin-bottom: 8px; font-family: monospace; }',
+    '.sanction-item { font-size: 12px; color: #901828; padding: 4px 0; border-bottom: 1px solid #f0c8d0; }',
+    '.sanction-item:last-child { border-bottom: none; }',
+    '.sanction-type { font-weight: 700; margin-right: 8px; }',
+    '.disclaimer { background: #fffce8; border: 1px solid #e8d880; border-radius: 5px; padding: 10px 14px; font-size: 10.5px; color: #706010; margin-top: 18px; line-height: 1.55; }',
+    '.footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid #d8e4f0; display: flex; justify-content: space-between; align-items: center; font-size: 9.5px; color: #8090a8; font-family: monospace; }',
+    '@media print {',
+    '  body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }',
+    '  .page { padding: 20px 30px 40px; }',
+    '}',
+    '</style></head><body><div class="page">',
+
+    // Header
+    '<div class="hdr">',
+    '<div><div class="brand">Chain<em>Guard</em></div><div class="brand-sub">AI Wallet Intelligence Report</div></div>',
+    '<div class="hdr-right"><div class="hdr-date">Generated: ' + ts + '</div>',
+    (reportId ? '<div class="hdr-rid">Report ID: ' + reportId + '</div>' : ''),
+    '</div></div>',
+
+    // Sanctions banner (if any)
+    hasFlags ? (
+      '<div class="sanction-box"><div class="sanction-title">⚠ Sanctions / High-Risk Flags Detected</div>' +
+      flagsHtml
+        .replace(/class="sanctions-item"/g, 'class="sanction-item"')
+        .replace(/class="sanctions-type[^"]*"/g, 'class="sanction-type"') +
+      '</div>'
+    ) : '',
+
+    // Address
+    '<div class="sec"><div class="sec-title">Wallet Address</div>',
+    '<div class="addr-box">' + wallet + '</div></div>',
+
+    // Score
+    '<div class="sec"><div class="sec-title">Risk Score</div>',
+    '<div class="score-row">',
+    '<div class="score-num">' + scoreNum + '</div>',
+    '<div class="score-info"><div class="level">' + level + '</div><div class="denom">out of 100</div></div>',
+    '</div>',
+    '<div class="sec-title" style="margin-top:12px">Score Components</div>',
+    '<table class="comp-table">',
+    compsHtml
+      .replace(/<div class="formula-row">/g, '<tr>')
+      .replace(/<\/div>\s*<\/div>/g, '</td></tr>')
+      .replace(/<span class="formula-key">/g, '<td class="comp-key">')
+      .replace(/<\/span>\s*<span class="formula-val[^"]*">/g, '</td><td class="comp-val">')
+      .replace(/<\/span>/g, ''),
+    '</table></div>',
+
+    // Stats
+    '<div class="sec"><div class="sec-title">On-Chain Data</div>',
+    '<div class="stats-grid">',
+    '<div class="stat-cell"><div class="stat-lbl">ETH Balance</div><div class="stat-val">' + stat('sv0') + '</div><div class="stat-sub">' + stat('ss0') + '</div></div>',
+    '<div class="stat-cell"><div class="stat-lbl">Transactions</div><div class="stat-val">' + stat('sv1') + '</div><div class="stat-sub">' + stat('ss1') + '</div></div>',
+    '<div class="stat-cell"><div class="stat-lbl">Wallet Age</div><div class="stat-val">' + stat('sv2') + '</div><div class="stat-sub">' + stat('ss2') + '</div></div>',
+    '<div class="stat-cell"><div class="stat-lbl">Token Types</div><div class="stat-val">' + stat('sv3') + '</div><div class="stat-sub">' + stat('ss3') + '</div></div>',
+    '</div></div>',
+
+    // AI Analysis
+    '<div class="sec"><div class="sec-title">AI Analysis — Claude Sonnet 4.6</div>',
+    '<div class="ai-box">' + aiHtml + '</div></div>',
+
+    // Disclaimer
+    '<div class="disclaimer">',
+    '⚠ This report is generated automatically using on-chain data from Etherscan and AI analysis by Claude (Anthropic). ',
+    'It is a preliminary screening tool and does not constitute legal, financial, or compliance advice. ',
+    'Consult a qualified AML professional for regulated compliance decisions. ',
+    'Data is limited to sampled transactions and may not reflect the complete wallet history.',
+    '</div>',
+
+    // Footer
+    '<div class="footer">',
+    '<span>ChainGuard — AI Wallet Intelligence</span>',
+    '<span>' + (reportId || '') + '</span>',
+    '<span>' + ts + '</span>',
+    '</div>',
+
+    '</div></body></html>'
+  ].join('');
+
+  // ── DOWNLOAD METHOD: Blob URL (never blocked by browser) ──
+  // Instead of window.open() which Chrome/Edge block as a popup,
+  // we create a Blob, generate a temporary URL, and trigger download
+  // via a hidden <a> tag click. For PDF specifically, we open in new
+  // tab so the browser's built-in print-to-PDF works.
+  try {
+    var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    var url  = URL.createObjectURL(blob);
+
+    // Open in new tab — this is allowed because it's a direct user click
+    var a = document.createElement('a');
+    a.href   = url;
+    a.target = '_blank';
+    a.rel    = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // Clean up the blob URL after a short delay
+    setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
+
+  } catch(e) {
+    // Ultimate fallback: data URI
+    var encoded = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+    window.open(encoded, '_blank');
+  }
+}
+
+
 document.getElementById('addrInput').addEventListener('keydown', e => { if(e.key==='Enter') analyze(); });
 document.getElementById('addrInput').addEventListener('input',   () => document.getElementById('searchErr').classList.remove('show'));
 document.getElementById('esKey').addEventListener('keydown', e => { if(e.key==='Enter') saveEs(); });
